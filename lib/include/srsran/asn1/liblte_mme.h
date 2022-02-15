@@ -1343,9 +1343,14 @@ typedef struct {
   bool dc_nr;
   bool dc_nr_present;
 } LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT;
-// Functions
+/// Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap,
                                                            uint8**                                  ie_ptr);
+//fuzzing automation
+LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie_fuzz(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap,
+                                                           uint8**                                  ie_ptr,
+                                                           unsigned short modification);
+//end fuzzing automation
 LIBLTE_ERROR_ENUM liblte_mme_unpack_ue_network_capability_ie(uint8**                                  ie_ptr,
                                                              LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap);
 
@@ -2576,6 +2581,10 @@ typedef struct {
   bool                                                     device_properties_present;
   bool                                                     old_guti_type_present;
   bool                                                     additional_security_cap_present;
+  //fuzzing automation
+  unsigned short                                           modification;
+  unsigned short                                           fuzz_case;
+  //end fuzzing automation
 } LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT* attach_req,

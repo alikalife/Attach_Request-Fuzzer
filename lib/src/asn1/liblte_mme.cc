@@ -2670,6 +2670,59 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK
 
   return (err);
 }
+
+//fuzzing automation
+LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie_fuzz(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap,
+                                                           uint8**                                  ie_ptr,
+                                                           unsigned short modification)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+  if (ue_network_cap != NULL && ie_ptr != NULL) {
+    if (ue_network_cap->dc_nr_present) {
+      **ie_ptr = modification;//7 fuzz
+    } else {
+      **ie_ptr = modification; //2
+    }
+    *ie_ptr += 1;
+    **ie_ptr = ue_network_cap->eea[0] << 7;
+    **ie_ptr |= ue_network_cap->eea[1] << 6;
+    **ie_ptr |= ue_network_cap->eea[2] << 5;
+    **ie_ptr |= ue_network_cap->eea[3] << 4;
+    **ie_ptr |= ue_network_cap->eea[4] << 3;
+    **ie_ptr |= ue_network_cap->eea[5] << 2;
+    **ie_ptr |= ue_network_cap->eea[6] << 1;
+    **ie_ptr |= ue_network_cap->eea[7];
+    *ie_ptr += 1;
+    **ie_ptr = ue_network_cap->eia[0] << 7;
+    **ie_ptr |= ue_network_cap->eia[1] << 6;
+    **ie_ptr |= ue_network_cap->eia[2] << 5;
+    **ie_ptr |= ue_network_cap->eia[3] << 4;
+    **ie_ptr |= ue_network_cap->eia[4] << 3;
+    **ie_ptr |= ue_network_cap->eia[5] << 2;
+    **ie_ptr |= ue_network_cap->eia[6] << 1;
+    **ie_ptr |= ue_network_cap->eia[7];
+    *ie_ptr += 1;
+
+    if (ue_network_cap->dc_nr_present) {
+      // skip empty caps
+      for (int i = 0; i < 4; i++) {
+        **ie_ptr = 0;
+        *ie_ptr += 1;
+      }
+
+      // set dcnr bit
+      **ie_ptr = ue_network_cap->dc_nr << 4;
+      *ie_ptr += 1;
+    }
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
+//end fuzzing automation
+
 LIBLTE_ERROR_ENUM liblte_mme_unpack_ue_network_capability_ie(uint8**                                  ie_ptr,
                                                              LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap)
 {
@@ -4960,8 +5013,22 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
     liblte_mme_pack_eps_mobile_id_ie(&attach_req->eps_mobile_id, &msg_ptr);
 
     // UE Network Capability
-    liblte_mme_pack_ue_network_capability_ie(&attach_req->ue_network_cap, &msg_ptr);
+    if (attach_req->fuzz_case == 3){//fuzzing
+      liblte_mme_pack_ue_network_capability_ie_fuzz(&attach_req->ue_network_cap, &msg_ptr, attach_req->modification);
 
+    }else{
+      liblte_mme_pack_ue_network_capability_ie(&attach_req->ue_network_cap, &msg_ptr);
+    }
+    
+
+    //fuzzing automation
+    if (attach_req->fuzz_case == 1){
+    for(int i=0; i<attach_req->modification; i++)
+      {
+      *msg_ptr = 0x41; // filling with 0xA
+      msg_ptr++; //enlarging the message
+      }
+    }
     // ESM Message Container
     liblte_mme_pack_esm_message_container_ie(&attach_req->esm_msg, &msg_ptr);
 
@@ -5098,6 +5165,15 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
       // 0x00 (5G-IA8=0, 5G-IA9=0, 5G-IA10=0, 5G-IA11=0, 5G-IA12=0, 5G-IA13=0, 5G-IA14=0, 5G-IA15=0)
       *msg_ptr = 0x00;
       msg_ptr++;
+    }
+
+    //fuzzing automation
+    if (attach_req->fuzz_case == 2){
+    for(int i=0; i<attach_req->modification; i++)
+      {
+      *msg_ptr = 0x41; // filling with 0xA
+      msg_ptr++; //enlarging the message
+      }
     }
 
     // Fill in the number of bytes used

@@ -79,6 +79,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   // clang-format off
   common.add_options()
+    //fuzzing automation 
+    ("modification",    bpo::value<unsigned short>(&args->stack.nas.modification)->default_value(0),     "Modification")
+    ("fuzz_case", bpo::value<unsigned short>(&args->stack.nas.fuzz_case)->default_value(0), "Fuzz case")
+    //end fuzzing automation
     ("ue.radio", bpo::value<string>(&args->rf.type)->default_value("multi"), "Type of the radio [multi]")
     ("ue.phy", bpo::value<string>(&args->phy.type)->default_value("lte"), "Type of the PHY [lte]")
 

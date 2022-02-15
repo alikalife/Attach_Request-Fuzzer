@@ -45,6 +45,10 @@ public:
   std::string    eia;
   std::string    eea;
   nas_sim_args_t sim;
+  //fuzzing automation
+  unsigned short modification;
+  unsigned short fuzz_case;
+  //end fuzzing automation
 
   // 5G args
   std::string    ia5g;

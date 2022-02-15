@@ -1538,6 +1538,11 @@ void nas::gen_attach_request(srsran::unique_byte_buffer_t& msg)
 
   logger.info("Generating attach request");
 
+  //fuzzing automation
+  attach_req.modification = cfg.modification;
+  attach_req.fuzz_case = cfg.fuzz_case;
+  //end fuzzing automation
+  
   attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
 
   for (u_int32_t i = 0; i < 8; i++) {
