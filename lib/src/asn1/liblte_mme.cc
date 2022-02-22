@@ -2671,18 +2671,18 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK
   return (err);
 }
 
-//fuzzing automation
+//fuzzing ue network capability function case 3
 LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie_fuzz(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap,
                                                            uint8**                                  ie_ptr,
-                                                           unsigned short modification)
+                                                          short modification)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (ue_network_cap != NULL && ie_ptr != NULL) {
     if (ue_network_cap->dc_nr_present) {
-      **ie_ptr = modification;//7 fuzz
+      **ie_ptr = modification; //modifiying length field
     } else {
-      **ie_ptr = modification; //2
+      **ie_ptr = modification; //modifiying length field
     }
     *ie_ptr += 1;
     **ie_ptr = ue_network_cap->eea[0] << 7;
@@ -2721,7 +2721,72 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie_fuzz(LIBLTE_MME_UE_NE
 
   return (err);
 }
-//end fuzzing automation
+//end fuzzing ue network capability function case 3
+
+//fuzzing ue network capability function case 4
+LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie_fuzz4(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap,
+                                                           uint8**                                  ie_ptr,
+                                                          short modification)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+  if (ue_network_cap != NULL && ie_ptr != NULL) {
+    if (ue_network_cap->dc_nr_present) {
+      **ie_ptr = 7 + modification;//add the required number of bytes to the length field
+    } else {
+      **ie_ptr = 2 + modification; //add the required number of bytes to the length field
+    }
+    *ie_ptr += 1;
+    if ( (ue_network_cap->dc_nr_present && (modification + 7) > 0) || (!ue_network_cap->dc_nr_present && (modification + 2) > 0) ){
+    //if the user wishes a length smaller than 0, then dispense with the encryption byte
+    **ie_ptr = ue_network_cap->eea[0] << 7;
+    **ie_ptr |= ue_network_cap->eea[1] << 6;
+    **ie_ptr |= ue_network_cap->eea[2] << 5;
+    **ie_ptr |= ue_network_cap->eea[3] << 4;
+    **ie_ptr |= ue_network_cap->eea[4] << 3;
+    **ie_ptr |= ue_network_cap->eea[5] << 2;
+    **ie_ptr |= ue_network_cap->eea[6] << 1;
+    **ie_ptr |= ue_network_cap->eea[7];
+    *ie_ptr += 1;
+    }
+    if ( (ue_network_cap->dc_nr_present && (modification + 7) > 1) || (!ue_network_cap->dc_nr_present && (modification + 2) > 1) ){
+    //if the user wishes a length smaller than 1, then dispense with the integrity byte
+    **ie_ptr = ue_network_cap->eia[0] << 7;
+    **ie_ptr |= ue_network_cap->eia[1] << 6;
+    **ie_ptr |= ue_network_cap->eia[2] << 5;
+    **ie_ptr |= ue_network_cap->eia[3] << 4;
+    **ie_ptr |= ue_network_cap->eia[4] << 3;
+    **ie_ptr |= ue_network_cap->eia[5] << 2;
+    **ie_ptr |= ue_network_cap->eia[6] << 1;
+    **ie_ptr |= ue_network_cap->eia[7];
+    *ie_ptr += 1;
+    }
+
+    if (ue_network_cap->dc_nr_present) {
+      // skip empty caps
+      for (int i = 0; i < 4; i++) {
+        **ie_ptr = 0;
+        *ie_ptr += 1;
+      }
+
+      // set dcnr bit
+      **ie_ptr = ue_network_cap->dc_nr << 4;
+      *ie_ptr += 1;
+    }
+
+
+ //add the required bytes
+ for (int i = 0; i < modification; i++) {
+        **ie_ptr = 0x41;
+        *ie_ptr += 1;
+      }
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
+//end fuzzing ue network capability function case 4
 
 LIBLTE_ERROR_ENUM liblte_mme_unpack_ue_network_capability_ie(uint8**                                  ie_ptr,
                                                              LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap)
@@ -5013,15 +5078,18 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
     liblte_mme_pack_eps_mobile_id_ie(&attach_req->eps_mobile_id, &msg_ptr);
 
     // UE Network Capability
-    if (attach_req->fuzz_case == 3){//fuzzing
+    if (attach_req->fuzz_case == 3){//deciding if and how to apply fuzzing to ue network capability case 3 / 4
       liblte_mme_pack_ue_network_capability_ie_fuzz(&attach_req->ue_network_cap, &msg_ptr, attach_req->modification);
 
-    }else{
-      liblte_mme_pack_ue_network_capability_ie(&attach_req->ue_network_cap, &msg_ptr);
+    }else if (attach_req->fuzz_case == 4){
+            liblte_mme_pack_ue_network_capability_ie_fuzz4(&attach_req->ue_network_cap, &msg_ptr, attach_req->modification);
     }
+    else{
+      liblte_mme_pack_ue_network_capability_ie(&attach_req->ue_network_cap, &msg_ptr);
+    }//end deciding if and how to apply fuzzing to ue network capability case 3 / 4
     
 
-    //fuzzing automation
+    //fuzzing case 1
     if (attach_req->fuzz_case == 1){
     for(int i=0; i<attach_req->modification; i++)
       {
@@ -5029,6 +5097,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
       msg_ptr++; //enlarging the message
       }
     }
+    //end fuzzing case 1
+
     // ESM Message Container
     liblte_mme_pack_esm_message_container_ie(&attach_req->esm_msg, &msg_ptr);
 
@@ -5167,7 +5237,107 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
       msg_ptr++;
     }
 
-    //fuzzing automation
+    //fuzzing case 5
+
+    //additional UE security capabilities
+    if (attach_req->fuzz_case == 5){
+      //modification 1 - adding a normal element to allow comparison
+      if (attach_req->modification == 1){
+        *msg_ptr = 0x6f;
+        msg_ptr++;
+        *msg_ptr = 0x04;
+        msg_ptr++;
+        *msg_ptr = 0xf0;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x70;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+      }
+
+      //modification 2 - adding a valid element then an invalid one
+      if (attach_req->modification == 2){
+        *msg_ptr = 0x6f;
+        msg_ptr++;
+        *msg_ptr = 0x04;
+        msg_ptr++;
+        *msg_ptr = 0xf0;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x70;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+      
+    
+        *msg_ptr = 0x6f;
+        msg_ptr++;
+        *msg_ptr = 0x04;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+      }
+
+      //modification 3 - adding an invalid element then a valid one
+      if (attach_req->modification == 3){
+        *msg_ptr = 0x6f;
+        msg_ptr++;
+        *msg_ptr = 0x04;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+      
+    
+        *msg_ptr = 0x6f;
+        msg_ptr++;
+        *msg_ptr = 0x04;
+        msg_ptr++;
+        *msg_ptr = 0xf0;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x70;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+      }
+
+    //modification 4 - exceeding the standard length of the element by adding a byte
+      if (attach_req->modification == 4){
+        *msg_ptr = 0x6f;
+        msg_ptr++;
+        *msg_ptr = 0x05;
+        msg_ptr++;
+        *msg_ptr = 0xf0;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x70;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+        *msg_ptr = 0x00;
+        msg_ptr++;
+      }      
+    }
+    //end fuzzing case 5
+
+    //fuzzing case 2
     if (attach_req->fuzz_case == 2){
     for(int i=0; i<attach_req->modification; i++)
       {
@@ -5175,6 +5345,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
       msg_ptr++; //enlarging the message
       }
     }
+    //end fuzzing case 2
 
     // Fill in the number of bytes used
     msg->N_bytes = msg_ptr - msg->msg;
